@@ -1,5 +1,2 @@
 python-telegram-bot
 python-dotenv
-python-dotenv
-python-telegram-bot
-telegram
