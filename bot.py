@@ -4,19 +4,38 @@ from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
-
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+logger = logging.getLogger(__name__)
+
+# Constants
+WEBAPP_URL = "https://gastroshopbali.netlify.app/"
+TARGET_CHAT_ID = '-1003698856504'
+
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log the error and help debug the issue."""
-    logging.error(f"Exception while handling an update: {context.error}")
+    logger.error(f"Exception while handling an update: {context.error}")
+
+
+async def send_webapp_button(chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send the WebApp button to start ordering."""
+    web_app = WebAppInfo(url=WEBAPP_URL)
+    keyboard = [[InlineKeyboardButton(text="Gastroshop_bali", web_app=web_app)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="Нажмите кнопку ниже, чтобы начать заказ:",
+        reply_markup=reply_markup
+    )
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sends a message with a button to share contact."""
+    """Sends a welcome message with a button to share contact."""
     contact_keyboard = KeyboardButton(text="Отправить номер телефона", request_contact=True)
     custom_keyboard = [[contact_keyboard]]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
@@ -35,6 +54,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=welcome_text, 
         reply_markup=reply_markup
     )
+    
+    # Send website link immediately
+    await send_webapp_button(update.effective_chat.id, context)
+
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the received contact."""
@@ -51,12 +74,11 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"**Phone:** {phone_number}"
     )
     
-    print(f"Received phone number: {phone_number}")
+    logger.info(f"Received phone number: {phone_number}")
     
-    # Send info to specific channel/user
-    TARGET_CHAT_ID = '-1003698856504'
+    # Send info to specific channel
     try:
-        logging.info(f"Attempting to send user info to channel: {TARGET_CHAT_ID}")
+        logger.info(f"Attempting to send user info to channel: {TARGET_CHAT_ID}")
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
@@ -64,32 +86,20 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             connect_timeout=60.0,
             read_timeout=60.0
         )
-        logging.info("Successfully sent user info to channel")
+        logger.info("Successfully sent user info to channel")
     except Exception as e:
-        logging.error(f"Failed to send to channel: {e}")
+        logger.error(f"Failed to send to channel: {e}")
     
-    # First remove the keyboard (hide "Share Contact")
-    # We send a temporary loading message to remove the keyboard, then delete it or just leave it.
-    # Actually, simplest UI flow:
-    # 1. Send "Thank you" and remove keyboard.
-    # 2. Send the "Menu" button immediately after.
-    
+    # Send confirmation and remove keyboard
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=f"Спасибо! Получен номер телефона: {phone_number}",
         reply_markup=ReplyKeyboardRemove()
     )
 
-    # Create WebApp button
-    web_app = WebAppInfo(url="https://gastroshopbali.netlify.app/")
-    keyboard = [[InlineKeyboardButton(text="Gastroshop_bali", web_app=web_app)]]
-    reply_markup_inline = InlineKeyboardMarkup(keyboard)
+    # Send WebApp button
+    await send_webapp_button(update.effective_chat.id, context)
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Нажмите кнопку ниже, чтобы начать заказ:",
-        reply_markup=reply_markup_inline
-    )
 
 if __name__ == '__main__':
     # Load environment variables
@@ -99,10 +109,10 @@ if __name__ == '__main__':
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     
     if not TOKEN:
-        print("Error: TELEGRAM_BOT_TOKEN not found in environment variables.")
+        logger.error("TELEGRAM_BOT_TOKEN not found in environment variables.")
         exit(1)
     
-    # Increase timeout to handle network issues on Railway
+    # Build application with timeouts for Railway
     application = (
         ApplicationBuilder()
         .token(TOKEN)
@@ -115,14 +125,11 @@ if __name__ == '__main__':
         .build()
     )
     
-    # Add error handler
+    # Add handlers
     application.add_error_handler(error_handler)
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
     
-    start_handler = CommandHandler('start', start)
-    contact_msg_handler = MessageHandler(filters.CONTACT, contact_handler)
-    
-    application.add_handler(start_handler)
-    application.add_handler(contact_msg_handler)
-    
-    # Bot is polling (quietly)
+    # Start polling
+    logger.info("Bot starting...")
     application.run_polling()
