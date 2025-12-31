@@ -11,6 +11,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Silence noisy httpx logs (only show warnings and errors)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 # Constants
 WEBAPP_URL = "https://gastroshopbali.netlify.app/"
 TARGET_CHAT_ID = '-1003698856504'
@@ -54,9 +57,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=welcome_text, 
         reply_markup=reply_markup
     )
-    
-    # Send website link immediately
-    await send_webapp_button(update.effective_chat.id, context)
 
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,6 +101,24 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_webapp_button(update.effective_chat.id, context)
 
 
+async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles when user sends any text instead of sharing phone."""
+    user = update.effective_user
+    
+    # Log user who skipped phone sharing
+    logger.info(f"User skipped phone sharing: {user.first_name} (@{user.username or 'N/A'})")
+    
+    # Remove the phone keyboard
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Хорошо! Вы можете начать заказ без номера телефона, но после оформления заказа обязательно свяжитесь с нами @gastroshop_bali",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    
+    # Send WebApp button
+    await send_webapp_button(update.effective_chat.id, context)
+
+
 if __name__ == '__main__':
     # Load environment variables
     load_dotenv()
@@ -129,6 +147,7 @@ if __name__ == '__main__':
     application.add_error_handler(error_handler)
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, skip_phone_handler))
     
     # Start polling
     logger.info("Bot starting...")
