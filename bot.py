@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from telegram.request import HTTPXRequest
+
 
 # Enable logging
 logging.basicConfig(
@@ -99,15 +99,13 @@ if __name__ == '__main__':
         exit(1)
     
     # Increase timeout to handle network issues on Railway
-    request_kwargs = {
-        'connect_timeout': 30.0,
-        'read_timeout': 30.0,
-    }
-    
     application = (
         ApplicationBuilder()
         .token(TOKEN)
-        .request(HTTPXRequest(**request_kwargs))
+        .connect_timeout(30.0)
+        .read_timeout(30.0)
+        .get_updates_connect_timeout(30.0)
+        .get_updates_read_timeout(30.0)
         .build()
     )
     
