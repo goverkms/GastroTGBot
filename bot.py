@@ -105,8 +105,28 @@ async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     """Handles when user sends any text instead of sharing phone."""
     user = update.effective_user
     
-    # Log user who skipped phone sharing
+    # Info to send to the channel (without phone)
+    user_info = (
+        f"👤 **User Skipped Phone**\n"
+        f"**Name:** {user.first_name} {user.last_name or ''}\n"
+        f"**Username:** @{user.username or 'N/A'}\n"
+        f"**ID:** {user.id}\n"
+        f"**Phone:** Not shared"
+    )
+    
     logger.info(f"User skipped phone sharing: {user.first_name} (@{user.username or 'N/A'})")
+    
+    # Send info to channel
+    try:
+        await context.bot.send_message(
+            chat_id=TARGET_CHAT_ID,
+            text=user_info,
+            parse_mode='Markdown',
+            connect_timeout=60.0,
+            read_timeout=60.0
+        )
+    except Exception as e:
+        logger.error(f"Failed to send to channel: {e}")
     
     # Remove the phone keyboard
     await context.bot.send_message(
