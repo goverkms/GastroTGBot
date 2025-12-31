@@ -3,12 +3,17 @@ import os
 from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
+from telegram.request import HTTPXRequest
 
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.ERROR
 )
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and help debug the issue."""
+    logging.error(f"Exception while handling an update: {context.error}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Sends a message with a button to share contact."""
@@ -57,7 +62,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
     except Exception as e:
-        print(f"Failed to send to channel: {e}")
+        logging.error(f"Failed to send to channel: {e}")
     
     # First remove the keyboard (hide "Share Contact")
     # We send a temporary loading message to remove the keyboard, then delete it or just leave it.
@@ -93,7 +98,21 @@ if __name__ == '__main__':
         print("Error: TELEGRAM_BOT_TOKEN not found in environment variables.")
         exit(1)
     
-    application = ApplicationBuilder().token(TOKEN).build()
+    # Increase timeout to handle network issues on Railway
+    request_kwargs = {
+        'connect_timeout': 30.0,
+        'read_timeout': 30.0,
+    }
+    
+    application = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .request(HTTPXRequest(**request_kwargs))
+        .build()
+    )
+    
+    # Add error handler
+    application.add_error_handler(error_handler)
     
     start_handler = CommandHandler('start', start)
     contact_msg_handler = MessageHandler(filters.CONTACT, contact_handler)
@@ -101,5 +120,5 @@ if __name__ == '__main__':
     application.add_handler(start_handler)
     application.add_handler(contact_msg_handler)
     
-    print("Bot is polling...")
+    # Bot is polling (quietly)
     application.run_polling()
