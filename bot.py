@@ -8,7 +8,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, Messa
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.ERROR
+    level=logging.INFO
 )
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,11 +56,15 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Send info to specific channel/user
     TARGET_CHAT_ID = '-1003698856504'
     try:
+        logging.info(f"Attempting to send user info to channel: {TARGET_CHAT_ID}")
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
-            parse_mode='Markdown'
+            parse_mode='Markdown',
+            connect_timeout=60.0,
+            read_timeout=60.0
         )
+        logging.info("Successfully sent user info to channel")
     except Exception as e:
         logging.error(f"Failed to send to channel: {e}")
     
@@ -102,10 +106,12 @@ if __name__ == '__main__':
     application = (
         ApplicationBuilder()
         .token(TOKEN)
-        .connect_timeout(30.0)
-        .read_timeout(30.0)
-        .get_updates_connect_timeout(30.0)
-        .get_updates_read_timeout(30.0)
+        .connect_timeout(60.0)
+        .read_timeout(60.0)
+        .write_timeout(60.0)
+        .pool_timeout(60.0)
+        .get_updates_connect_timeout(60.0)
+        .get_updates_read_timeout(65.0)
         .build()
     )
     
