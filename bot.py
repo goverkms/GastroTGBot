@@ -1,5 +1,6 @@
 import logging
 import os
+import html
 from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
@@ -67,11 +68,11 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Info to send to the channel
     user_info = (
-        f"👤 **New User Contact**\n"
-        f"**Name:** {user.first_name} {user.last_name or ''}\n"
-        f"**Username:** @{user.username or 'N/A'}\n"
-        f"**ID:** {user.id}\n"
-        f"**Phone:** {phone_number}"
+        f"👤 <b>New User Contact</b>\n"
+        f"<b>Name:</b> {html.escape(user.first_name)} {html.escape(user.last_name or '')}\n"
+        f"<b>Username:</b> @{html.escape(user.username or 'N/A')}\n"
+        f"<b>ID:</b> {user.id}\n"
+        f"<b>Phone:</b> {html.escape(phone_number)}"
     )
     
     logger.info(f"Received phone number: {phone_number}")
@@ -82,7 +83,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
-            parse_mode='Markdown',
+            parse_mode='HTML',
             connect_timeout=60.0,
             read_timeout=60.0
         )
@@ -107,11 +108,11 @@ async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Info to send to the channel (without phone)
     user_info = (
-        f"👤 **User Skipped Phone**\n"
-        f"**Name:** {user.first_name} {user.last_name or ''}\n"
-        f"**Username:** @{user.username or 'N/A'}\n"
-        f"**ID:** {user.id}\n"
-        f"**Phone:** Not shared"
+        f"👤 <b>User Skipped Phone</b>\n"
+        f"<b>Name:</b> {html.escape(user.first_name)} {html.escape(user.last_name or '')}\n"
+        f"<b>Username:</b> @{html.escape(user.username or 'N/A')}\n"
+        f"<b>ID:</b> {user.id}\n"
+        f"<b>Phone:</b> Not shared"
     )
     
     logger.info(f"User skipped phone sharing: {user.first_name} (@{user.username or 'N/A'})")
@@ -121,7 +122,7 @@ async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
-            parse_mode='Markdown',
+            parse_mode='HTML',
             connect_timeout=60.0,
             read_timeout=60.0
         )
