@@ -80,6 +80,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Send info to specific channel
     try:
         logger.info(f"Attempting to send user info to channel: {TARGET_CHAT_ID}")
+        logger.info(f"Message content:\n{user_info}")
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
@@ -119,6 +120,8 @@ async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # Send info to channel
     try:
+        logger.info(f"Attempting to send user info to channel: {TARGET_CHAT_ID}")
+        logger.info(f"Message content (skipped phone):\n{user_info}")
         await context.bot.send_message(
             chat_id=TARGET_CHAT_ID,
             text=user_info,
