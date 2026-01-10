@@ -1,7 +1,6 @@
 import logging
 import os
 import html
-from dotenv import load_dotenv
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
@@ -144,8 +143,6 @@ async def skip_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 if __name__ == '__main__':
-    # Load environment variables
-    load_dotenv()
     
     # Get token from environment variable
     TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
